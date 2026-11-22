@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fff8fb">
+<meta name="description" content="RGB 色光三原色亮度控制、視覺負片後像實驗。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>色光與視覺實驗室</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#fff8fb;
+  --panel:#fffdfd;
+  --edge:#eddfe9;
+  --text:#51445a;
+  --muted:#766b80;
+  --rose:#f8e2ec;
+  --lilac:#eae4fb;
+  --mint:#e5f4ee;
+}
+*{box-sizing:border-box}
+html{font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--text)}
+body{
+  margin:0;min-height:100dvh;
+  background:
+    radial-gradient(ellipse 56% 48% at 7% 7%,#ffe9f1b8 0%,transparent 92%),
+    radial-gradient(ellipse 50% 54% at 95% 15%,#ece7ffc7 0%,transparent 87%),
+    radial-gradient(ellipse 59% 50% at 52% 98%,#edf9f2b8 0%,transparent 92%),
+    linear-gradient(137deg,#fffcfd 0%,#fbf8ff 55%,#f8fdfb 100%);
+}
+button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid #9870b5;outline-offset:3px}
+.app{width:min(1340px,100%);margin:auto;padding:18px clamp(12px,2.3vw,28px) 85px}
+h1{font-size:clamp(1.25rem,2.3vw,1.75rem);letter-spacing:.015em;font-weight:800;margin:0;color:#584563}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:46px}
+.tabs{display:flex;gap:9px;margin:15px 0 15px}
+.tab{
+  border:1px solid #e8dce9;background:#fffdfedb;color:#85718c;
+  border-radius:13px;padding:11px 22px;min-height:46px;
+  font-weight:800;font-size:1rem;
+  box-shadow:0 2px 8px #84708a09;
+}
+.tab[aria-selected="true"]{
+  background:linear-gradient(140deg,#f9dfeb,#eee1f6);
+  color:#594368;border-color:#ebcde1;
+  box-shadow:0 4px 13px #b98ca21e;
+}
+.screen{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(255px,.82fr);gap:16px;align-items:start}
+.panel{
+  min-width:0;border-radius:20px;border:1px solid var(--edge);
+  background:#fffdfdeb;padding:17px;
+  box-shadow:0 8px 32px #a488a115,0 1px 3px #9c82950a;
+}
+/* The RGB light field stays dark: additive light mixing requires a dark screen. */
+.stage{
+  width:100%;aspect-ratio:930/620;min-height:280px;
+  border:1px solid #3d3d4d;border-radius:15px;overflow:hidden;background:#020406;
+}
+.stage canvas{display:block;width:100%;height:100%}
+.controls{display:grid;gap:18px;padding-block:8px}
+.ctl{padding:8px 4px 12px}
+.ctl-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:1.02rem;font-weight:800}
+.ctl-name{display:flex;align-items:center;gap:10px}
+.dot{display:inline-block;width:15px;height:15px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+.dot.r{color:#ea6974}.dot.g{color:#48bd84}.dot.b{color:#638ded}
+output{font-size:1rem;font-weight:700;min-width:3.6em;text-align:right;font-variant-numeric:tabular-nums;color:#85778a}
+input[type="range"]{display:block;width:100%;height:36px;margin:11px 0 0;cursor:pointer;touch-action:pan-y}
+input.red{accent-color:#eb7180}input.green{accent-color:#55c896}input.blue{accent-color:#7296eb}
+.hidden{display:none!important}
+/* #FFFFFF is intentional: keep the afterimage observation field scientifically neutral. */
+.after-stage{
+  width:100%;aspect-ratio:930/620;min-height:280px;
+  border:1px solid #eeeaf0;border-radius:15px;
+  background:#ffffff;position:relative;display:grid;place-items:center;overflow:hidden;
+}
+.after-disc{position:absolute;width:39%;aspect-ratio:1;border-radius:50%;display:none}
+.after-disc.visible{display:block}
+.fixation{position:relative;z-index:1;user-select:none;color:#2b2b2b;font-weight:700;font-size:clamp(20px,2.7vw,27px);line-height:1}
+.after-controls{display:grid;gap:20px}
+.color-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.color-choice{
+  border:1px solid #e7dce8;background:#fff9fc;color:#67566e;
+  border-radius:12px;min-width:0;min-height:53px;font-size:1rem;font-weight:800;
+  white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:7px;padding:6px;
+}
+.color-choice.active{
+  border-color:#d6b7d8;box-shadow:inset 0 0 0 2px #e7cce4;
+  background:#f8e9f4;color:#563e66;
+}
+.color-choice i{width:13px;height:13px;flex-shrink:0;display:inline-block;border-radius:50%;border:1px solid #6d53613a;background:var(--color)}
+.time-group{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.time-choice{
+  border:1px solid #e7dce8;background:#fff9fc;color:#74617b;
+  border-radius:12px;min-height:50px;font-size:1.02rem;font-weight:800;
+}
+.time-choice.active{
+  border-color:#ccbada;box-shadow:inset 0 0 0 2px #e2d0ef;
+  background:#f1eafb;color:#5a4670;
+}
+.start{
+  min-height:58px;border:1px solid #e8c4d5;border-radius:13px;
+  background:linear-gradient(120deg,#f6d8e6,#e8ddf8);
+  color:#563e62;font-size:1.18rem;font-weight:900;
+  box-shadow:0 5px 16px #b695af20;
+}
+.start:disabled{opacity:.64;cursor:default}
+.countdown{min-height:1.5em;margin-top:10px;text-align:center;font-size:1.2rem;color:#7d6a89;font-weight:800;font-variant-numeric:tabular-nums}
+.countdown:empty{visibility:hidden}
+@media(hover:hover){.tab:hover:not([aria-selected="true"]),.color-choice:hover:not(.active),.time-choice:hover:not(.active){background:#fff1f8}}
+@media(max-width:850px){.screen{grid-template-columns:1fr}.after-controls{grid-template-columns:1fr;max-width:none}.controls{gap:5px}.ctl{padding:4px 6px 7px}}
+@media(max-width:540px){.app{padding:12px 9px 85px}.tabs{gap:7px;margin:12px 0}.tab{flex:1;padding:10px 6px;font-size:.92rem}.panel{padding:11px}.stage,.after-stage{min-height:220px}.color-grid{gap:6px}.color-choice{min-height:49px;gap:5px;padding:5px;font-size:.93rem}.color-choice i{width:10px;height:10px}.after-controls{gap:14px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top"><h1>色光與視覺</h1></header>
+  <nav class="tabs" role="tablist" aria-label="實驗主題">
+    <button id="tab-mix" class="tab" type="button" role="tab" aria-controls="view-mix" aria-selected="true">色光三原色</button>
+    <button id="tab-after" class="tab" type="button" role="tab" aria-controls="view-after" aria-selected="false">視覺負片後像</button>
+  </nav>
+  <section id="view-mix" role="tabpanel" aria-labelledby="tab-mix">
+    <div class="screen">
+      <div class="panel"><div class="stage"><canvas id="stage" role="img" aria-label="三束紅綠藍色光部分重疊，依亮度即時加法混色"></canvas></div></div>
+      <section class="panel controls" aria-label="色光亮度">
+        <div class="ctl"><label class="ctl-head" for="red"><span class="ctl-name"><i class="dot r"></i>紅光</span><output id="red-value" for="red">100%</output></label><input class="red" id="red" type="range" min="0" max="100" step="1" value="100"></div>
+        <div class="ctl"><label class="ctl-head" for="green"><span class="ctl-name"><i class="dot g"></i>綠光</span><output id="green-value" for="green">100%</output></label><input class="green" id="green" type="range" min="0" max="100" step="1" value="100"></div>
+        <div class="ctl"><label class="ctl-head" for="blue"><span class="ctl-name"><i class="dot b"></i>藍光</span><output id="blue-value" for="blue">100%</output></label><input class="blue" id="blue" type="range" min="0" max="100" step="1" value="100"></div>
+      </section>
+    </div>
+  </section>
+  <section id="view-after" role="tabpanel" aria-labelledby="tab-after" class="hidden">
+    <div class="screen">
+      <div class="panel"><div id="after-stage" class="after-stage" aria-label="負片後像觀察區，背景純白">
+        <div class="after-disc" id="after-disc" aria-hidden="true"></div><div class="fixation" aria-hidden="true">＋</div>
+      </div></div>
+      <section class="panel after-controls" aria-label="負片後像設定">
+        <div id="stimuli" class="color-grid" role="group" aria-label="觀察顏色">
+          <button type="button" class="color-choice active" data-stimulus="red" aria-pressed="true"><i style="--color:#e34d55"></i>紅色</button>
+          <button type="button" class="color-choice" data-stimulus="green" aria-pressed="false"><i style="--color:#35ba6d"></i>綠色</button>
+          <button type="button" class="color-choice" data-stimulus="blue" aria-pressed="false"><i style="--color:#4778de"></i>藍色</button>
+          <button type="button" class="color-choice" data-stimulus="yellow" aria-pressed="false"><i style="--color:#edd039"></i>黃色</button>
+          <button type="button" class="color-choice" data-stimulus="cyan" aria-pressed="false"><i style="--color:#29b4bc"></i>青色</button>
+          <button type="button" class="color-choice" data-stimulus="purple" aria-pressed="false"><i style="--color:#aa56ce"></i>紫色</button>
+        </div>
+        <div class="time-group" role="group" aria-label="觀察時間">
+          <button type="button" class="time-choice active" data-seconds="10" aria-pressed="true">10 秒</button>
+          <button type="button" class="time-choice" data-seconds="15" aria-pressed="false">15 秒</button>
+        </div>
+        <div>
+          <button type="button" class="start" id="start-after" style="width:100%">開始觀察</button>
+          <div id="countdown" class="countdown" role="status" aria-live="off"></div>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+<script src="./home-button.js"></script>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const sliders=[$('red'),$('green'),$('blue')],outs=[$('red-value'),$('green-value'),$('blue-value')];
+const canvas=$('stage'),ctx=canvas.getContext('2d');
+let light=[100,100,100];
+const clamp=x=>Math.max(0,Math.min(255,Math.round(x)));
+function drawLights(){
+ const r=canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+ const w=Math.max(2,Math.round(r.width*dpr)),h=Math.max(2,Math.round(r.height*dpr));
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+ ctx.setTransform(w/930,0,0,h/620,0,0);
+ ctx.fillStyle='#020406';ctx.fillRect(0,0,930,620);
+ const spots=[{x:353,y:242,c:0},{x:577,y:242,c:1},{x:465,y:397,c:2}],radius=210;
+ for(const s of spots){ctx.beginPath();ctx.arc(s.x,s.y,radius,0,Math.PI*2);ctx.strokeStyle=['#642932','#275644','#2a3c6b'][s.c];ctx.lineWidth=2;ctx.stroke();}
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ for(const s of spots){const value=clamp(light[s.c]*255/100);if(value===0)continue;
+  const channel=[0,0,0];channel[s.c]=value;
+  const gradient=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,radius);
+  const color=a=>`rgba(${channel[0]},${channel[1]},${channel[2]},${a})`;
+  gradient.addColorStop(0,color(1));gradient.addColorStop(.90,color(1));gradient.addColorStop(.98,color(.96));gradient.addColorStop(1,color(0));
+  ctx.fillStyle=gradient;ctx.beginPath();ctx.arc(s.x,s.y,radius,0,Math.PI*2);ctx.fill();
+ }ctx.restore();
+}
+sliders.forEach((el,i)=>el.addEventListener('input',()=>{light[i]=Number(el.value);outs[i].textContent=el.value+'%';drawLights();}));
+const stimuli={red:'#e34d55',green:'#35ba6d',blue:'#4778de',yellow:'#edd039',cyan:'#29b4bc',purple:'#aa56ce'};
+let selected='red',seconds=10,phase='ready',startTime=0,frame=0;
+function cancelTick(){if(frame){cancelAnimationFrame(frame);frame=0;}}
+function clearAfter(){cancelTick();phase='ready';$('after-disc').classList.remove('visible');$('after-stage').style.background='#ffffff';$('countdown').textContent='';$('start-after').disabled=false;}
+function finishAfter(){cancelTick();phase='afterimage';$('after-disc').classList.remove('visible');$('after-stage').style.background='#ffffff';$('countdown').textContent='';$('start-after').disabled=false;}
+function tick(now){if(phase!=='watching')return;const remaining=Math.max(0,seconds*1000-(now-startTime));$('countdown').textContent=Math.ceil(remaining/1000)+' 秒';if(remaining<=0){finishAfter();return;}frame=requestAnimationFrame(tick);}
+$('start-after').addEventListener('click',()=>{clearAfter();phase='watching';$('after-disc').style.background=stimuli[selected];$('after-disc').classList.add('visible');$('start-after').disabled=true;startTime=performance.now();frame=requestAnimationFrame(tick);});
+document.querySelectorAll('[data-stimulus]').forEach(btn=>btn.addEventListener('click',()=>{if(phase==='watching')return;selected=btn.dataset.stimulus;document.querySelectorAll('[data-stimulus]').forEach(b=>{const on=b===btn;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});clearAfter();}));
+document.querySelectorAll('[data-seconds]').forEach(btn=>btn.addEventListener('click',()=>{if(phase==='watching')return;seconds=Number(btn.dataset.seconds);document.querySelectorAll('[data-seconds]').forEach(b=>{const on=b===btn;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});clearAfter();}));
+function switchTab(tab){const mix=tab==='mix';$('tab-mix').setAttribute('aria-selected',String(mix));$('tab-after').setAttribute('aria-selected',String(!mix));$('view-mix').classList.toggle('hidden',!mix);$('view-after').classList.toggle('hidden',mix);clearAfter();if(mix)requestAnimationFrame(drawLights);}
+$('tab-mix').addEventListener('click',()=>switchTab('mix'));
+$('tab-after').addEventListener('click',()=>switchTab('after'));
+window.addEventListener('resize',()=>{if(!$('view-mix').classList.contains('hidden'))drawLights();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&phase==='watching')clearAfter();});
+clearAfter();requestAnimationFrame(drawLights);
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+})();
+</script>
+</body>
+</html>
